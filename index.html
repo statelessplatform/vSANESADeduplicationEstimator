@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vSAN ESA 9.0 Deduplication Estimator</title>
+    <!-- Using system fonts that closely match VMware Clarity's Metropolis -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header class="header">
+        <div style="display: flex; align-items: center;">
+            <div class="logo">🗄️</div>
+            <h1>vSAN ESA 9.0 Deduplication Estimator</h1>
+        </div>
+        <div class="status-indicator">
+            <div class="status-dot"></div>
+            Live Update
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Input Panel -->
+        <div class="input-panel panel">
+            <div class="panel-header">
+                <div class="panel-icon">⚙️</div>
+                Configuration
+            </div>
+            <div class="panel-body">
+                <div class="auto-calculate-banner">
+                    <div class="pulse-dot"></div>
+                    vSAN 9.0 ESA Compliant • Results update automatically
+                </div>
+
+                <!-- Cluster Configuration -->
+                <div class="section">
+                    <div class="section-title">Cluster Profile</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="hosts">
+                                Number of Hosts
+                                <span class="tooltip"
+                                    data-tooltip="vSAN ESA requires 3-64 hosts. RAID availability depends on host count per vSAN 9.0 architecture.">ℹ️</span>
+                            </label>
+                            <input type="number" id="hosts" class="form-control" value="6" min="3" max="64">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="rawTiBPerHost">
+                                Raw NVMe TiB per Host
+                                <span class="tooltip"
+                                    data-tooltip="ESA requires all-flash NVMe storage only. Enter total raw NVMe capacity per host.">ℹ️</span>
+                            </label>
+                            <input type="number" id="rawTiBPerHost" class="form-control" value="20" step="0.1" min="1.6"
+                                max="500">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="raidLevel">
+                                Storage Policy (RAID)
+                                <span class="tooltip"
+                                    data-tooltip="vSAN 9.0 ESA RAID policies: RAID-1 (3+ hosts), RAID-5 Adaptive (3+ hosts), RAID-6 (6+ hosts).">ℹ️</span>
+                            </label>
+                            <select id="raidLevel" class="form-control">
+                                <!-- Options populated dynamically -->
+                            </select>
+                            <div id="raidRequirement" class="alert alert-warning hidden"
+                                style="margin-top: 0.5rem; padding: 0.5rem;">
+                                <!-- RAID requirement warning -->
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="domainMode">
+                                Deduplication Scaling
+                                <span class="tooltip"
+                                    data-tooltip="Global deduplication domain effectiveness modeling: Conservative = safer estimates, Aggressive = higher efficiency assumptions.">ℹ️</span>
+                            </label>
+                            <select id="domainMode" class="form-control">
+                                <option value="conservative">Conservative</option>
+                                <option value="typical" selected>Typical</option>
+                                <option value="aggressive">Aggressive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <div class="custom-checkbox">
+                            <input type="checkbox" id="compressionOn" checked>
+                            <div class="checkmark"></div>
+                        </div>
+                        <label class="form-label" for="compressionOn" style="margin: 0;">
+                            Enable Compression (Default ESA)
+                            <span class="tooltip"
+                                data-tooltip="ESA enables compression by default at 512B granularity within 4KB blocks. Can be disabled per storage policy.">ℹ️</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- ESA Overheads -->
+                <div class="section">
+                    <div class="section-title">ESA System Overheads</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="lfsOverheadRate">
+                                LFS Overhead (%)
+                                <span class="tooltip"
+                                    data-tooltip="ESA Local File System overhead ~13.1% of object + replica data. Varies by cluster utilization.">ℹ️</span>
+                            </label>
+                            <input type="number" id="lfsOverheadRate" class="form-control" value="13.1" step="0.1"
+                                min="10" max="20">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="checksumRate">
+                                Checksum Overhead (%)
+                                <span class="tooltip"
+                                    data-tooltip="Data integrity checksum metadata as % of effective data. ESA includes end-to-end checksums.">ℹ️</span>
+                            </label>
+                            <input type="number" id="checksumRate" class="form-control" value="2" step="0.5" min="1"
+                                max="5">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Domain Animation -->
+                <div class="section">
+                    <div class="section-title">Global Deduplication Domain</div>
+                    <div class="animation-container">
+                        <div class="dedupe-animation" id="animationContainer">
+                            <div class="dedupe-domain"></div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>ESA Global Domain:</strong> Unlike OSA's per-disk-group domains, ESA creates a single
+                        cluster-wide deduplication domain that improves efficiency as you add hosts.
+                    </div>
+                </div>
+
+                <!-- Workloads -->
+                <div class="section">
+                    <div class="section-title">Workload Mix</div>
+                    <div id="workloadsContainer">
+                        <!-- Workload items will be added here -->
+                    </div>
+                    <button type="button" class="btn btn-outline" onclick="addWorkload()">
+                        + Add Workload
+                    </button>
+                </div>
+
+                <div id="errors" class="hidden"></div>
+                <div id="warnings" class="hidden"></div>
+                <div id="esaCompliance" class="hidden"></div>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="results-panel panel">
+            <div class="panel-header">
+                <div class="panel-icon">📊</div>
+                Results & Analysis
+            </div>
+            <div class="panel-body">
+                <!-- Key Metrics -->
+                <div class="section">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="overallReduction">-</div>
+                            <div class="metric-label">Overall Reduction</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="compressionReduction">-</div>
+                            <div class="metric-label">Compression Only</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="dedupeReduction">-</div>
+                            <div class="metric-label">Deduplication Only</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Waterfall Chart -->
+                <div class="section">
+                    <div class="section-title">ESA Capacity Transformation</div>
+                    <div class="chart-container">
+                        <svg class="waterfall-chart" id="waterfallChart">
+                            <!-- Chart will be generated -->
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Capacity Breakdown -->
+                <div class="section">
+                    <div class="section-title">ESA Capacity Analysis</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Stage</th>
+                                <th>Capacity (TiB)</th>
+                                <th>ESA Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="breakdownTable">
+                            <!-- Breakdown rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Per-Workload Analysis -->
+                <div class="section">
+                    <div class="section-title">Workload Efficiency Analysis</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Workload Type</th>
+                                <th>Logical</th>
+                                <th>Compressed</th>
+                                <th>Dedupe Savings</th>
+                                <th>Net Efficiency</th>
+                            </tr>
+                        </thead>
+                        <tbody id="workloadDetailsTable">
+                            <!-- Workload details -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- VMware vSAN 9.0 ESA Guidance -->
+                <div class="section">
+                    <div class="alert alert-info">
+                        <strong>🏢 VMware vSAN 9.0 ESA Architecture</strong>
+                        <ul id="guidanceNotes"
+                            style="margin: 0.75rem 0 0 0; padding-left: 1.2rem; font-size: var(--text-sm); line-height: 1.6;">
+                            <!-- Notes will be populated -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
