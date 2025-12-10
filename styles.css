@@ -764,6 +764,15 @@ body {
     transition: all 0.2s ease;
 }
 
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    color: var(--cds-global-color-gray-600);
+    margin-left: var(--cds-global-space-4);
+    transition: all 0.2s ease;
+}
+
 .tooltip:hover {
     color: var(--cds-global-color-blue-400);
 }
@@ -774,8 +783,8 @@ body {
     bottom: 125%;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--cds-global-color-white-200);
-    color: var(--cds-global-typography-color-100);
+    background: white; /* Explicit white background */
+    color: black; /* Explicit black text */
     padding: var(--cds-global-space-5);
     border-radius: var(--cds-alias-object-border-radius-200);
     font-size: var(--cds-global-typography-font-size-4);
