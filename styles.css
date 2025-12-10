@@ -799,6 +799,7 @@ body {
     border: 1px solid var(--cds-alias-object-border-color);
     /* Remove or reduce padding to decrease height */
     padding: var(--cds-global-space-3) var(--cds-global-space-5); /* Reduced vertical padding */
+}
 
 .tooltip:hover::after {
     opacity: 1;
