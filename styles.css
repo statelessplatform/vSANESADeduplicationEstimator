@@ -792,7 +792,7 @@ body {
     visibility: hidden;
     transition: all 0.2s ease;
     z-index: 1000;
-    max-width: 250px;
+    max-width: 450px;
     white-space: normal;
     box-shadow: var(--cds-alias-object-shadow-300);
     border: 1px solid var(--cds-alias-object-border-color);
